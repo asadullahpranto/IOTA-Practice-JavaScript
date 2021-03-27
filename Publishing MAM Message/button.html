@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.1/css/all.css" integrity="sha384-vp86vTRFVJgpjF9jiIGPEEqYqlDwgyBgEF109VFjmqGmIY/Y4HV4d3Gp2irVfcrp" crossorigin="anonymous">
+
+    <title>IOTA Throughput!</title>
+    <style>
+      .vl {
+        border-left: 6px solid green;
+        height: 500px;
+      }
+      </style>
+  </head>
+
+  <body class="container" style="background-color: #b1c5c5;" >
+    <div class="container">
+        <nav class="navbar navbar-expand-lg navbar-light bg-success mb-5">
+            <a class="navbar-brand text-white" href="#">IOTA</a>
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+              <span class="navbar-toggler-icon"></span>
+            </button>
+          
+            <div class="collapse navbar-collapse" id="navbarSupportedContent">
+              <ul class="navbar-nav mr-auto">
+                <li class="nav-item active">
+                  <a class="nav-link text-white" href="#">Home<span class="sr-only">(current)</span></a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link text-white" href="#">Link</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link text-white" href="#">Dropdown</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link text-white" href="#">Disabled</a>
+                </li>
+              </ul>
+              <form class="form-inline my-2 my-lg-0">
+                <input class="form-control mr-sm-2" type="search" placeholder="Search" aria-label="Search">
+                <button class="btn btn-info my-2 my-sm-0" type="submit">Search</button>
+              </form>
+            </div>
+        </nav>
+
+        <div class="row">
+          <div class="col-md-6">
+              <div>
+                <h2>Send data to the IOTA Tangle <button type="button" onClick="window.location.reload();" class="btn btn-info">Send</button></h2>
+              </div>
+              
+          </div>
+
+          <div class="col-md-6 vl" style="word-wrap: break-word;">
+              <div id="output"><h2>Output: <br/></h2></div>
+              <script src="script.js"></script>
+              <script>
+                const TRYTE_ALPHABET = '9ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+
+                const asciiToTrytes = (input) => {
+                    let trytes = '';
+                    for (let i = 0; i < input.length; i++) {
+                        var dec = input[i].charCodeAt(0);
+                        trytes += TRYTE_ALPHABET[dec % 27];
+                        trytes += TRYTE_ALPHABET[(dec - dec % 27) / 27];
+                    }
+                    return trytes;
+                };
+
+                const trytesToAscii = (trytes) => {
+                    let ascii = '';
+                    for (let i = 0; i < trytes.length; i += 2) {
+                        ascii += String.fromCharCode(TRYTE_ALPHABET.indexOf(trytes[i]) + TRYTE_ALPHABET.indexOf(trytes[i + 1]) * 27);
+                    }
+                    return ascii;
+                };
+
+                (async function () {
+                    const mode = 'public'
+                    const provider = 'https://nodes.devnet.iota.org'
+
+                    const mamExplorerLink = `https://mam-explorer.firebaseapp.com/?provider=${encodeURIComponent(provider)}&mode=${mode}&root=`
+
+                    const outputHtml = document.querySelector("#output");
+
+                    // Initialize MAM State
+                    let mamState = Mam.init(provider);
+
+                    // Publish to tangle
+                    const publish = async packet => {
+                        // Create MAM Payload - STRING OF TRYTES
+                        const trytes = asciiToTrytes(JSON.stringify(packet))
+                        const message = Mam.create(mamState, trytes)
+
+                        // Save new mamState
+                        mamState = message.state
+
+                        // Attach the payload
+                        await Mam.attach(message.payload, message.address, 3, 9)
+
+                        outputHtml.innerHTML += `Published: ${packet}<br/>`;
+                        return message.root;
+                    }
+
+                    const publishAll = async () => {
+
+                        let t1 = new Date();
+                        const root = await publish('Message from Asadullah');
+                        let t2 = new Date();
+
+                        await publish('Message form Mubin');
+                        let t3 = new Date();
+
+                        await publish('Messager form boka Rony');
+
+                        let t4 = new Date();
+
+                        await publish('Message form Hridoy');
+
+                        let t5 = new Date();
+
+                        outputHtml.innerHTML += `<br>For 1st data: ${(t2-t1)/1000} Sec<br/>`;
+                        outputHtml.innerHTML += `For 2nd data: ${(t3-t2)/1000} Sec<br/>`;
+                        outputHtml.innerHTML += `For 3rd data: ${(t4-t3)/1000} Sec<br/>`;
+                        outputHtml.innerHTML += `For 4rd data: ${(t5-t4)/1000} Sec<br/><br/>`;
+
+                        return root
+                    }
+                  
+
+                    // Callback used to pass data out of the fetch
+                    const logData = data => outputHtml.innerHTML += `Fetched and parsed ${JSON.parse(trytesToAscii(data))}<br/>`;
+
+                    const root = await publishAll();
+
+                    // Output asyncronously using "logData" callback function
+                    //await Mam.fetch(root, mode, null, logData)
+
+                    // Output syncronously once fetch is completed
+                    const result = await Mam.fetch(root, mode)
+                    result.messages.forEach(message => {
+                        outputHtml.innerHTML += `Fetched and parsed: ${JSON.parse(trytesToAscii(message))}<br/>`
+                    });
+
+                    outputHtml.innerHTML += `<br/>Verify with MAM Explorer: <a target="_blank" href="${mamExplorerLink}${root}"><div class="btn btn-info">Verify Transaction</div></a>`;
+                })();
+              </script>
+          </div>
+        </div>   
+    
+    
+
+    <!-- Optional JavaScript -->
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+    <script src=""></script>
+  </div>
+  </body>
+</html>

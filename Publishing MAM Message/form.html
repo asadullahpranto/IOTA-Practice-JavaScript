@@ -1,0 +1,24 @@
+<html>
+    <head>
+        <title>form</title>
+    </head>
+
+    <body>
+        <form name="myform">
+            <label for="id">Insert your ID:</label><br>
+            <input type="number" id="id" name="idName"><br>
+        </form>
+
+        <script type="text/javascript">
+            window.onload = function() {
+                document.myform.action = get_action();
+            }
+        
+            function get_action() {
+                return form_action;
+            }
+
+            
+        </script>
+    </body>
+</html>
